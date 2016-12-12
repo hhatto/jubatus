@@ -1,4 +1,8 @@
 (*
+ Original version of this file(rust.ml) is go.ml.
+ following lines to go.ml original file license:
+*)
+(*
  Jubatus: Online machine learning framework for distributed environment
  Copyright (C) 2015 Preferred Networks and Nippon Telegraph and
  Telephone Corporation.
