@@ -52,6 +52,7 @@ let _ =
     | "java" -> Java.generate
     | "ruby" -> Ruby.generate
     | "go" -> Go.generate
+    | "rust" -> Rust.generate
     | _ ->
       print_endline ("Unsupported language: \"" ^ conf.Config.language ^ "\"");
       exit 1 in

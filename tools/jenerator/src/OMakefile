@@ -58,6 +58,7 @@ FILES[] =
   python
   ruby
   go
+  rust
   java
   parse
   main
