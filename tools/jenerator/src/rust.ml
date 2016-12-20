@@ -257,15 +257,22 @@ let gen_self_with_equal field_names =
   List.map (fun s -> (0, "@" ^ s ^ " = " ^ s)) field_names
 ;;
 
+let range s e =
+  let rec aux s e =
+    if s >= e then [] else s :: aux (s+1) e in
+  if s > e then List.rev (aux e s) else aux s e
+;;
+
 let gen_message m =
   let fields = List.map (fun f -> (f.field_name, f.field_type)) m.message_fields in
   let args = List.map (fun (name, type_name) ->
                 gen_to_msgpack_value_arg_start type_name ^
                 "self." ^ name ^ (gen_to_msgpack_value_arg_end type_name)) fields in
+  let ifields = List.combine (range 0 (List.length fields)) fields in
   List.concat [
     [
       (0, "#[derive(RustcEncodable, RustcDecodable, Default, Debug, Clone)]");
-        (0, "pub struct " ^ snake_to_upper m.message_name ^ " {");
+      (0, "pub struct " ^ snake_to_upper m.message_name ^ " {");
     ];
     List.map (fun (name, type_name) ->
       (2, "pub " ^ name ^ ": " ^ gen_type type_name ^ ",") ) fields;
@@ -280,10 +287,10 @@ let gen_message m =
       (4,     "let s = data.as_array().unwrap();");
       (4,     snake_to_upper m.message_name ^ "{");
     ];
-    List.map (fun (name, type_name) ->
+    List.map (fun (idx, (name, type_name)) ->
       (2, name ^ ": " ^ gen_type_from_msgpack_value_start type_name ^
-          "s[0]" ^
-          gen_type_from_msgpack_value_end type_name ^ ",")) fields;
+          "s[" ^ Printf.sprintf "%d" idx ^ "]" ^
+          gen_type_from_msgpack_value_end type_name ^ ",")) ifields;
     [
       (4,     "}");
       (2,   "}");
