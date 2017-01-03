@@ -197,9 +197,11 @@ let rec gen_type_decode_end = function
       gen_type_decode_start t ^ "x" ^ gen_type_decode_end t ^ ").collect()"
   | Map(key, value) -> ".as_map().unwrap().iter().map(|m| {\n" ^
     "let (ref k, ref v): (Value, Value) = *m;\n" ^
-    "h.insert(" ^
+    "(" ^
     "k" ^ gen_type_decode key ^
-    "," ^ gen_type_decode_start value ^ "v" ^ gen_type_decode_end value ^ ")})"
+    "," ^ gen_type_decode_start value ^ "v" ^ gen_type_decode_end value ^
+    ")}).collect::<HashMap<" ^
+    gen_type key ^ ", " ^ gen_type value ^ ">>()"
   | _ -> "x_x"
 ;;
 
@@ -234,29 +236,6 @@ let rec gen_type_from_msgpack_value_end = function
   | _ -> "x_x"
 ;;
 
-let rec gen_return_value_hash = function
-  | Map(key, value) -> 
-    "let mut h: HashMap<" ^ gen_type key ^ ", " ^ gen_type value ^ "> = HashMap::new();"
-  | _ -> ""
-;;
-
-let rec gen_return_value = function
-  | Map(key, value) -> ""
-  | _ -> "let ret = "
-;;
-
-let rec gen_return = function
-  | Map(key, value) -> "h"
-  | _ -> "ret"
-;;
-
-let gen_response_decode_hash m =
-  let ret_type = match m.method_return_type with
-    | None -> ""
-    | Some t -> gen_return_value_hash t in
-  ret_type
-;;
-
 let gen_response_decode m =
   let ret_type_s = match m.method_return_type with
     | None -> "nil"
@@ -264,23 +243,15 @@ let gen_response_decode m =
   let ret_type_e = match m.method_return_type with
     | None -> "nil"
     | Some t -> gen_type_decode_end t in
-  let ret_value = match m.method_return_type with
-    | None -> "nil"
-    | Some t -> gen_return_value t in
-  ret_value ^ ret_type_s ^ "result" ^ ret_type_e ^ ";"
+  ret_type_s ^ "result" ^ ret_type_e
 ;;
 
 let gen_client_method service_name m =
   let name = m.method_name in
-  let return = match m.method_return_type with
-    | None -> ""
-    | Some t -> gen_return t in
   [ (0, gen_def (snake_to_upper service_name) name m.method_arguments (gen_return_type m));
     (2,   gen_client_call_args m);
     (2,   gen_client_call m);
-    (2,   gen_response_decode_hash m);
     (2,   gen_response_decode m);
-    (2,   return);
     (0, "}");
   ]
 ;;
