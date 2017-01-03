@@ -98,18 +98,26 @@ let rec gen_to_msgpack_value_arg_start = function
   | _ -> ""
 ;;
 
+let rec gen_to_msgpack_value_arg_x = function
+  | Int(_, _) -> "*x"
+  | Float(_) -> "*x"
+  | _ -> "x"
+;;
+
 let rec gen_to_msgpack_value_arg_end = function
   | String -> ".to_owned())"
   | Int(_) -> "))"
   | Float(_) -> "))"
   | Datum -> ".to_msgpack_value()"
   | Struct(_) -> ".to_msgpack_value()"
-  | Map(key, value) -> ".iter().map(|k, v| (" ^
+  | Map(key, value) -> ".iter().map(|(k, v)| (" ^
       gen_to_msgpack_value_arg_start key ^ "k" ^ gen_to_msgpack_value_arg_end key ^ ", " ^
       gen_to_msgpack_value_arg_start value ^ "v" ^ gen_to_msgpack_value_arg_end value ^
       ")).collect())"
   | List t -> ".iter().map(|x| " ^
-      gen_to_msgpack_value_arg_start t ^ "x" ^ gen_to_msgpack_value_arg_end t ^
+      gen_to_msgpack_value_arg_start t ^
+      gen_to_msgpack_value_arg_x t ^
+      gen_to_msgpack_value_arg_end t ^
       ").collect())"
   | _ -> "gen_to_msgpack_value_arg_end.X"
 ;;
@@ -187,8 +195,8 @@ let rec gen_type_decode_end = function
   | Struct s  -> ".clone())"
   | List t -> ".as_array().unwrap().iter().map(|x| " ^
       gen_type_decode_start t ^ "x" ^ gen_type_decode_end t ^ ").collect()"
-  | Map(key, value) -> ".as_map().unwrap().iter().map(|m| {" ^
-    "let (ref k, ref v): (Value, Value) = *m;" ^
+  | Map(key, value) -> ".as_map().unwrap().iter().map(|m| {\n" ^
+    "let (ref k, ref v): (Value, Value) = *m;\n" ^
     "h.insert(" ^
     "k" ^ gen_type_decode key ^
     "," ^ gen_type_decode_start value ^ "v" ^ gen_type_decode_end value ^ ")})"
@@ -211,27 +219,42 @@ let rec gen_type_from_msgpack_value_end = function
   | Float(_) -> ".as_f64().unwrap()"
   | String -> ".as_str().unwrap().to_string()"
   | Datum -> ".clone())"
-  | Struct s  -> ")"
+  | Struct s  -> ".clone())"
   | List t -> ".as_array().unwrap().iter().map(|x| " ^
       gen_type_from_msgpack_value_start t ^
-      "x" ^
+      "x.clone()" ^
       gen_type_from_msgpack_value_end t ^
       ").collect()"
-  | Map(key, value) -> ".as_map().unwrap().iter().map(|k, v| " ^
-    "h.insert(" ^
+  | Map(key, value) -> ".as_map().unwrap().iter().map(|m| {\n" ^
+    "let (ref k, ref v): (Value, Value) = *m;\n" ^
+    "(" ^
     "k" ^ gen_type_decode key ^
-    ", v" ^ gen_type_decode value ^ "))"
+    ", v" ^ gen_type_decode value ^ ")}).collect::<HashMap<" ^
+    gen_type key ^ ", " ^ gen_type value ^ ">>()"
   | _ -> "x_x"
 ;;
 
+let rec gen_return_value_hash = function
+  | Map(key, value) -> 
+    "let mut h: HashMap<" ^ gen_type key ^ ", " ^ gen_type value ^ "> = HashMap::new();"
+  | _ -> ""
+;;
+
 let rec gen_return_value = function
-  | Map(key, value) -> "let mut h: HashMap<" ^ gen_type key ^ ", " ^ gen_type value ^ "> = HashMap::new();"
+  | Map(key, value) -> ""
   | _ -> "let ret = "
 ;;
 
 let rec gen_return = function
   | Map(key, value) -> "h"
   | _ -> "ret"
+;;
+
+let gen_response_decode_hash m =
+  let ret_type = match m.method_return_type with
+    | None -> ""
+    | Some t -> gen_return_value_hash t in
+  ret_type
 ;;
 
 let gen_response_decode m =
@@ -255,6 +278,7 @@ let gen_client_method service_name m =
   [ (0, gen_def (snake_to_upper service_name) name m.method_arguments (gen_return_type m));
     (2,   gen_client_call_args m);
     (2,   gen_client_call m);
+    (2,   gen_response_decode_hash m);
     (2,   gen_response_decode m);
     (2,   return);
     (0, "}");
@@ -287,7 +311,7 @@ let gen_message m =
   let ifields = List.combine (range 0 (List.length fields)) fields in
   List.concat [
     [
-      (0, "#[derive(RustcEncodable, RustcDecodable, Default, Debug, Clone)]");
+      (0, "#[derive(Default, Debug, Clone)]");
       (0, "pub struct " ^ snake_to_upper m.message_name ^ " {");
     ];
     List.map (fun (name, type_name) ->
@@ -429,7 +453,6 @@ let gen_client_header module_name =
     (0, "use common::datum::Datum;");
     (0, "use common::client::Client;");
     (0, "use " ^ module_name ^ "::types::*;");
-    (0, "use rustc_serialize::Decodable;");
     (0, "use rmp_serialize::Decoder;");
     (0, "");
   ]
@@ -477,7 +500,6 @@ let gen_type_file conf source idl =
   let content = concat_blocks [
     [
       (0, "use std::collections::HashMap;");
-      (0, "use rustc_serialize::{Encodable, Decodable};");
       (0, "use common::datum::Datum;");
       (0, "use msgpack::Value;");
       (0, "use msgpack::value::Float;");
