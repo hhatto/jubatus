@@ -224,6 +224,16 @@ let rec gen_type_from_msgpack_value_end = function
   | _ -> "x_x"
 ;;
 
+let rec gen_return_value = function
+  | Map(key, value) -> "let mut h: HashMap<" ^ gen_type key ^ ", " ^ gen_type value ^ "> = HashMap::new();"
+  | _ -> "let ret = "
+;;
+
+let rec gen_return = function
+  | Map(key, value) -> "h"
+  | _ -> "ret"
+;;
+
 let gen_response_decode m =
   let ret_type_s = match m.method_return_type with
     | None -> "nil"
@@ -231,16 +241,22 @@ let gen_response_decode m =
   let ret_type_e = match m.method_return_type with
     | None -> "nil"
     | Some t -> gen_type_decode_end t in
-  "let ret = " ^ ret_type_s ^ "result" ^ ret_type_e ^ ";"
+  let ret_value = match m.method_return_type with
+    | None -> "nil"
+    | Some t -> gen_return_value t in
+  ret_value ^ ret_type_s ^ "result" ^ ret_type_e ^ ";"
 ;;
 
 let gen_client_method service_name m =
   let name = m.method_name in
+  let return = match m.method_return_type with
+    | None -> ""
+    | Some t -> gen_return t in
   [ (0, gen_def (snake_to_upper service_name) name m.method_arguments (gen_return_type m));
     (2,   gen_client_call_args m);
     (2,   gen_client_call m);
     (2,   gen_response_decode m);
-    (2,   "return ret");
+    (2,   return);
     (0, "}");
   ]
 ;;
