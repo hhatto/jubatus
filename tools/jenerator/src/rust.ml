@@ -85,10 +85,10 @@ let rec gen_to_msgpack_value_arg_start = function
   | Bool -> "Value::Bool("
   | Int(signed, bytes) -> begin
     match signed, bytes with
-    | true, _ -> "Value::Integer(Integer::I64("
-    | false, _ -> "Value::Integer(Integer::U64("
+    | true, _ -> "Value::I64("
+    | false, _ -> "Value::U64("
   end
-  | Float(_) -> "Value::Float(Float::F64("
+  | Float(_) -> "Value::F64("
   | Raw -> "[]bytes"
   | String -> "Value::String("
   | Struct s  -> ""
@@ -106,8 +106,8 @@ let rec gen_to_msgpack_value_arg_x = function
 
 let rec gen_to_msgpack_value_arg_end = function
   | String -> ".to_owned())"
-  | Int(_) -> "))"
-  | Float(_) -> "))"
+  | Int(_) -> ")"
+  | Float(_) -> ")"
   | Datum -> ".to_msgpack_value()"
   | Struct(_) -> ".to_msgpack_value()"
   | Map(key, value) -> ".iter().map(|(k, v)| (" ^
@@ -419,8 +419,7 @@ let end_br =
 let gen_client_header module_name = 
   [
     (0, "use std::collections::HashMap;");
-    (0, "use msgpack::Value;");
-    (0, "use msgpack::value::{Integer, Float};");
+    (0, "use rmpv::Value;");
     (0, "use common::datum::Datum;");
     (0, "use common::client::Client;");
     (0, "use " ^ module_name ^ "::types::*;");
@@ -472,9 +471,7 @@ let gen_type_file conf source idl =
     [
       (0, "use std::collections::HashMap;");
       (0, "use common::datum::Datum;");
-      (0, "use msgpack::Value;");
-      (0, "use msgpack::value::Float;");
-      (0, "use msgpack::value::Integer;");
+      (0, "use rmpv::Value;");
       (0, "");
     ];
     concat_blocks types;
