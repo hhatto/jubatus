@@ -423,7 +423,6 @@ let gen_client_header module_name =
     (0, "use common::datum::Datum;");
     (0, "use common::client::Client;");
     (0, "use " ^ module_name ^ "::types::*;");
-    (0, "use rmp_serialize::Decoder;");
     (0, "");
   ]
 ;;
@@ -468,12 +467,13 @@ let gen_type_file conf source idl =
   let types = List.map gen_typedef idl in
 
   let content = concat_blocks [
+    if (List.length types) > 1 then
     [
       (0, "use std::collections::HashMap;");
       (0, "use common::datum::Datum;");
       (0, "use rmpv::Value;");
       (0, "");
-    ];
+    ] else [];
     concat_blocks types;
   ] in
   make_header conf source name content
