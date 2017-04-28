@@ -398,7 +398,7 @@ let common_functions name =
 
     (* get_name func *)
     (0, "pub fn get_name(&self) -> &str {");
-    (2,   "return self.client.name");
+    (2,   "self.client.name");
     (0, "}");
     (0, "");
 
