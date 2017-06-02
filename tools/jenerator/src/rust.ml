@@ -176,7 +176,7 @@ let rec gen_type_decode = function
   | _ -> "x_x"
 ;;
 
-let rec gen_type_decode_start = function
+let rec gen_type_start = function
   | Datum -> "Datum::from_msgpack_value("
   | Struct s -> snake_to_upper s ^ "::from_msgpack_value("
   | _ -> ""
@@ -194,21 +194,15 @@ let rec gen_type_decode_end = function
   | Datum -> ".clone())"
   | Struct s  -> ".clone())"
   | List t -> ".as_array().unwrap().iter().map(|x| " ^
-      gen_type_decode_start t ^ "x" ^ gen_type_decode_end t ^ ").collect()"
+      gen_type_start t ^ "x" ^ gen_type_decode_end t ^ ").collect()"
   | Map(key, value) -> ".as_map().unwrap().iter().map(|m| {\n" ^
     "let (ref k, ref v): (Value, Value) = *m;\n" ^
     "(" ^
     "k" ^ gen_type_decode key ^
-    "," ^ gen_type_decode_start value ^ "v" ^ gen_type_decode_end value ^
+    "," ^ gen_type_start value ^ "v" ^ gen_type_decode_end value ^
     ")}).collect::<HashMap<" ^
     gen_type key ^ ", " ^ gen_type value ^ ">>()"
   | _ -> "x_x"
-;;
-
-let rec gen_type_from_msgpack_value_start = function
-  | Datum  -> "Datum::from_msgpack_value("
-  | Struct s -> snake_to_upper s ^ "::from_msgpack_value("
-  | _ -> ""
 ;;
 
 let rec gen_type_from_msgpack_value_end = function
@@ -223,7 +217,7 @@ let rec gen_type_from_msgpack_value_end = function
   | Datum -> ".clone())"
   | Struct s  -> ".clone())"
   | List t -> ".as_array().unwrap().iter().map(|x| " ^
-      gen_type_from_msgpack_value_start t ^
+      gen_type_start t ^
       "x.clone()" ^
       gen_type_from_msgpack_value_end t ^
       ").collect()"
@@ -239,7 +233,7 @@ let rec gen_type_from_msgpack_value_end = function
 let gen_response_decode m =
   let ret_type_s = match m.method_return_type with
     | None -> "nil"
-    | Some t -> gen_type_decode_start t in
+    | Some t -> gen_type_start t in
   let ret_type_e = match m.method_return_type with
     | None -> "nil"
     | Some t -> gen_type_decode_end t in
@@ -299,7 +293,7 @@ let gen_message m =
       (4,     snake_to_upper m.message_name ^ "{");
     ];
     List.map (fun (idx, (name, type_name)) ->
-      (2, name ^ ": " ^ gen_type_from_msgpack_value_start type_name ^
+      (2, name ^ ": " ^ gen_type_start type_name ^
           "s[" ^ Printf.sprintf "%d" idx ^ "]" ^
           gen_type_from_msgpack_value_end type_name ^ ",")) ifields;
     [
