@@ -1,4 +1,4 @@
-// This file is auto-generated from anomaly.idl(0.7.2-50-gbcc1e21) with jenerator version 0.8.5-6-g5a2c923/feature/improve-get_labels-ulong
+// This file is auto-generated from anomaly.idl(1.0.6-6-g2cf96c3) with jenerator version 0.9.4-42-g70f7539/develop
 // *** DO NOT EDIT ***
 
 #ifndef JUBATUS_CLIENT_ANOMALY_CLIENT_HPP_
@@ -30,6 +30,12 @@ class anomaly : public jubatus::client::common::client {
   id_with_score add(const jubatus::client::common::datum& row) {
     msgpack::rpc::future f = c_.call("add", name_, row);
     return f.get<id_with_score>();
+  }
+
+  std::vector<std::string> add_bulk(
+      const std::vector<jubatus::client::common::datum>& data) {
+    msgpack::rpc::future f = c_.call("add_bulk", name_, data);
+    return f.get<std::vector<std::string> >();
   }
 
   float update(const std::string& id,
