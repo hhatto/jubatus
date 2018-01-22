@@ -85,12 +85,12 @@ let rec gen_to_msgpack_value_arg_start = function
   | Bool -> "Value::Bool("
   | Int(signed, bytes) -> begin
     match signed, bytes with
-    | true, _ -> "Value::I64("
-    | false, _ -> "Value::U64("
+    | true, _ -> "Value::from("
+    | false, _ -> "Value::from("
   end
-  | Float(_) -> "Value::F64("
+  | Float(_) -> "Value::from("
   | Raw -> "[]bytes"
-  | String -> "Value::String("
+  | String -> "Value::from("
   | Struct s  -> ""
   | List t -> "Value::Array("
   | Map(key, value) -> "Value::Map("
@@ -316,7 +316,7 @@ let common_functions name =
   [
     (* save func *)
     (0, "pub fn save(&mut self, id: String) -> HashMap<String, String> {");
-    (2,   "let args: Vec<Value> = vec![Value::String(id)];");
+    (2,   "let args: Vec<Value> = vec![Value::from(id)];");
     (2,   "let result = self.client.call(\"save\", args);");
     (2,   "let mut ret: HashMap<String, String> = HashMap::new();");
 		(2,   "for r in result.as_map().unwrap().iter() {");
@@ -330,7 +330,7 @@ let common_functions name =
 
     (* load func *)
     (0, "pub fn load(&mut self, id: String) -> bool {");
-    (2,   "let args: Vec<Value> = vec![Value::String(id)];");
+    (2,   "let args: Vec<Value> = vec![Value::from(id)];");
     (2,   "let result = self.client.call(\"load\", args);");
     (2,   "result.as_bool().unwrap()");
     (0, "}");
